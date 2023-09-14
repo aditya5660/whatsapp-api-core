@@ -1,0 +1,66 @@
+{
+  "name": "@poppinss/inspect",
+  "version": "1.0.1",
+  "description": "Stringify Javascript values to a string or pretty print HTML",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "src"
+  ],
+  "author": ["virk", "@poppinss"],
+  "devDependencies": {
+    "@ljharb/eslint-config": "^16.0.0",
+    "core-js": "^2.5.7",
+    "endent": "^2.0.1",
+    "eslint": "^6.8.0",
+    "np": "^6.2.3",
+    "tape": "^5.0.0"
+  },
+  "scripts": {
+    "pretest": "npm run lint",
+    "lint": "eslint .",
+    "test": "npm run tests-only",
+    "pretests-only": "node test-core-js",
+    "tests-only": "tape test/*.js",
+    "posttest": "npx aud --production"
+  },
+  "testling": {
+    "files": [
+      "test/*.js",
+      "test/browser/*.js"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/thetutlage/object-inspect.git"
+  },
+  "homepage": "https://github.com/thetutlage/object-inspect",
+  "keywords": [
+    "inspect",
+    "util.inspect",
+    "object",
+    "stringify",
+    "pretty"
+  ],
+  "funding": {
+    "url": "https://github.com/sponsors/ljharb"
+  },
+  "license": "MIT",
+  "browser": {
+    "./util.inspect.js": false
+  },
+  "greenkeeper": {
+    "ignore": [
+      "nyc",
+      "core-js"
+    ]
+  },
+  "bugs": {
+    "url": "https://github.com/thetutlage/object-inspect/issues"
+  },
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "dependencies": {}
+}

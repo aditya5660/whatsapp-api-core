@@ -1,0 +1,26 @@
+"use strict";
+/*
+ * edge
+ *
+ * (c) Harminder Virk <virk@adonisjs.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.debuggerTag = void 0;
+/**
+ * Add debugger break point to the compiled template
+ */
+exports.debuggerTag = {
+    block: false,
+    seekable: false,
+    tagName: 'debugger',
+    noNewLine: true,
+    /**
+     * Compiles `@debugger` tags
+     */
+    compile(_, buffer, token) {
+        buffer.writeExpression('debugger', token.filename, token.loc.start.line);
+    },
+};

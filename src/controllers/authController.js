@@ -62,7 +62,7 @@ module.exports = {
 
     forceLogin: async (req, res) => {
         if (process.env.NODE_ENV !== 'local') {
-            return res.status(403).json({ error: 'Force login is only allowed in local environment' });
+            return ResponseUtil.badRequest({res, message: 'Force login is only allowed in local environment'});
         }
 
         const schema = Joi.object({

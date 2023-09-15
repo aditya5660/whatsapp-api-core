@@ -1,3 +1,4 @@
+const { sequelize } = require('../config/database');
 const Device = require('../models/Device');
 
 module.exports = {
@@ -43,5 +44,12 @@ module.exports = {
 
     setStatus: async (phone, status) => {
         return Device.update({ status }, { where: { phone } });
+    },
+
+    getRandomDevice: async (user_id) => {
+        return Device.findOne({
+            where: { user_id },
+            order: sequelize.random() 
+        });
     }
 };

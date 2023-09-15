@@ -15,6 +15,8 @@ const Message = sequelize.define('Message', {
         allowNull: false,
     },
     metadata: DataTypes.JSON,
+    remote_message_id: DataTypes.STRING,
+    remote_jid: DataTypes.STRING
 }, {
     tableName: 'messages',
     timestamps: true,

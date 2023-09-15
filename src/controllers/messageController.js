@@ -1,54 +1,80 @@
-const whatsappService = require('../services/whatsappService');
-const deviceService = require('../services/deviceService');
 const Message = require('../models/Message');
 const MessageState = require('../models/MessageState');
+const deviceService = require('../services/deviceService');
+const whatsappService = require('../services/whatsappService');
+const { getSessionStatus, getSession } = require('../services/whatsappService');
+const { categorizeFile } = require('../utils/general');
+const ResponseUtil = require('../utils/response');
+
 
 module.exports = {
     sendMessage: async (req, res) => {
         // Extract request headers and body
         const { headers, body } = req;
         const { receiver, message, file } = body;
-        const apiKey = headers['x-apikey'];
+        const user = req.user;
         try {
             // Verify the device token (API key)
-            const device = await deviceService.getByToken(apiKey);
+            const device = await deviceService.getByPhone(body.sender, user.userId);
             
             if (!device) {
-                return res.status(401).json({ error: 'Invalid device token' });
+                return ResponseUtil.unauthorized({ res ,message: 'Device Not Found' });
             }
-            const session = whatsappService.getSession(device.phone);
+    
+            const sessionStatus = await whatsappService.getSessionStatus(device.phone);
+            
+            if(sessionStatus.status == 'disconnected'){
+                return ResponseUtil.badRequest({ res, message: 'Device not connected' });
+            }
+    
+            const session = await whatsappService.getSession(device.phone);
 
             // Split the receivers string into an array if multiple receivers are provided
             const receivers = receiver.split(',');
+            
+            let formattedMessage = {
+                text: message,
+            };
+        
+            if (file) {
+                const categoryFile = categorizeFile(file);
+
+                formattedMessage = {
+                    caption: message,
+                    ...categoryFile
+                } 
+            }
 
             // Send messages to each receiver
             const results = await Promise.all(
                 receivers.map(async (recipient) => {
                     const formattedPhoneNumber = whatsappService.formatPhone(recipient);
-                    const result = await whatsappService.sendMessage(session, formattedPhoneNumber, { "text": message });
+                    
+                    const result = await whatsappService.sendMessage(session, formattedPhoneNumber, formattedMessage);
                     // Create a message record in the messages table
                     const messageRecord = await Message.create({
                         device_id: device.id,
                         user_id: device.user_id,
                         receiver: recipient,
                         metadata: result,
-                        state: 'sent',
+                        state: result.status,
+                        remote_message_id: result.key.id,
+                        remote_jid: result.key.remoteJid 
                     });
         
-                    // Create a message state in the message_states table
                     const messageState = await MessageState.create({
-                        messageId: messageRecord.id, // The ID of the newly created message record
-                        state: 'sent'
+                        message_id: messageRecord.id, 
+                        state: result.status
                     });
                     return { recipient, ...result };
                 })
             );
-
-
-            res.json({ results });
+    
+    
+            return ResponseUtil.ok({ res, data: results, message: 'Message sent' });
         } catch (error) {
             console.log(error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            return ResponseUtil.internalError({ res ,error });
         }
     },
 };

@@ -14,8 +14,7 @@ CREATE TABLE users (
     is_active BOOLEAN,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    token VARCHAR(255),
-    token_expired_at TIMESTAMP
+    api_key VARCHAR(255),
 );
 
 -- Create the roles table
@@ -34,6 +33,8 @@ CREATE TABLE messages (
     device_id INT,
     state VARCHAR(255) NOT NULL,
     metadata JSON,
+    remote_message_id VARCHAR(255),
+    remote_jid VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

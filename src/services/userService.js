@@ -1,10 +1,14 @@
 const User = require('../models/User');
 const userRepository = require('../repositories/userRepository');
 const bcrypt = require('bcrypt');
+const { generateRandomString } = require('../utils/general');
 
 module.exports = {
-    getAllUsers: async () => {
-        return User.findAll();
+    getAllUsers: async (offset, limit) => {
+        return User.findAndCountAll({
+            offset,
+            limit,
+        });
     },
 
     getByEmail: async (email) => {
@@ -21,10 +25,19 @@ module.exports = {
             }
         });
     },
+    getUserByApiKey: async (api_key) => {
+        return User.findOne({
+            attributes: ['id', 'name', 'email', 'role_id','is_active'],
+            where: {
+                api_key
+            }
+        });
+    },
 
     createUser: async (userData) => {
         // set password to bcrypt
         userData.password = await bcrypt.hash(userData.password, 10);
+        userData.api_key = generateRandomString();
         userData.is_active = true;
         return User.create(userData);
     },

@@ -21,8 +21,7 @@ const User = sequelize.define('User', {
         allowNull: false,
     },
     is_active: DataTypes.BOOLEAN,
-    token: DataTypes.STRING,
-    token_expired_at: DataTypes.DATE,
+    api_key: DataTypes.STRING,
 }, {
     timestamps: true,
     paranoid: false,

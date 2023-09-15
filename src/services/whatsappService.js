@@ -4,8 +4,12 @@ const { fileURLToPath } = require('url');
 const pino = require('pino');
 const { toDataURL } = require('qrcode');
 const dirname = require('../utils/dirname.js');
-const responseHelper = require('../utils/response.js');
+const ResponseUtil = require('../utils/response.js');
 const axios = require('axios');
+const util = require('util');
+const messageService = require('./messageService');
+
+const readFileAsync = util.promisify(fs.readFile);
 const {
     makeWASocket,
     DisconnectReason,
@@ -37,6 +41,25 @@ const shouldReconnect = (sessionId) => {
 
     return false;
 };
+
+
+
+const getSessionStatus = async (sessionId) => {
+    try {
+        const data = await readFileAsync(`sessions/md_${sessionId}/creds.json`);
+    
+        let userdata = JSON.parse(data);
+        return {
+            status: "connected",
+            user: userdata
+        }
+    } catch {
+        return {
+            status: "disconnected",
+        };
+    }
+};
+
 
 const createSession = async (sessionId, isLegacy = false, res = null) => {
     const sessionFileName = (isLegacy ? 'legacy_' : 'md_') + sessionId + (isLegacy ? '.json' : '');
@@ -88,6 +111,14 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
     });
     client.ev.on('messages.update', async (message) => {
         console.log('message updated', message);
+        // loop the message
+        await Promise.all(
+            message.map(async (messageDetail) => {
+                if (messageDetail.key.id,messageDetail.update.status) {
+                    messageService.updateMessageByRemoteMessageId(messageDetail.key.id,messageDetail.update.status);
+                }
+            })
+        );
         // remote_message_id, remote_jid
         // 1 => sent
         // 3 => delivered
@@ -119,8 +150,9 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
                     webHookData.sessionId = sessionId;
                     webHookData.message_id = firstMessage.key.id;
                     webHookData.message = conversation;
-
+                    
                     sentWebHook(sessionId, webHookData);
+                    // TODO: implement auto reply
                 }
             }
 
@@ -133,31 +165,42 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
         const { connection, lastDisconnect } = update;
         const statusCode = lastDisconnect?.["error"]?.["output"]?.['statusCode'];
 
+        // console.log(update);
         if (connection === "open") {
             retries.delete(sessionId);
         }
 
         if (connection === "close") {
             if (statusCode === DisconnectReason.loggedOut || !shouldReconnect(sessionId)) {
-                if (res && !res.headersSent) {
-                    responseHelper(res, 400, false, "Unable to create session.");
-                }
-                return deleteSession(sessionId, isLegacy);
+                deleteSession(sessionId, isLegacy);
+                return ResponseUtil.badRequest({
+                    res,
+                    message: "Unable to create session.",
+                });
             }
 
             setTimeout(() => {
                 createSession(sessionId, isLegacy, res);
-            }, statusCode === DisconnectReason.restartRequired ? 0 : parseInt(process.env.RECONNECT_INTERVAL || 0));
+            }, statusCode === DisconnectReason.restartRequired ? 0 : parseInt(process.env.RECONNECT_INTERVAL || 5000));
         }
 
         if (update.qr) {
             if (res && !res.headersSent) {
                 try {
-                    const qrCodeDataURL = await toDataURL(update.qr);
-                    responseHelper(res, 200, true, "QR code received, please scan the QR code.", { qr: qrCodeDataURL });
-                    return;
-                } catch {
-                    responseHelper(res, 500, false, "Unable to create QR code.");
+                    const qr = await toDataURL(update.qr);
+                    return ResponseUtil.ok({
+                        res,
+                        message: "QR code generated",
+                        data: {
+                            qr
+                        }
+                    });
+                } catch (error) {
+                    return ResponseUtil.internalError({
+                        res,
+                        message: "Unable to create QR code.",
+                        error
+                    });
                 }
             }
 
@@ -172,13 +215,14 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
 
 const getSession = (sessionId) => sessions.get(sessionId) || null;
 
+
 const setDeviceStatus = (sessionId, status) => {
     deviceService.setStatus(sessionId, status ? 'connected' : 'disconnected');
     console.log('set device status', sessionId, status);
 };
 
 const sentWebHook = (sessionId, data) => {
-    console.log('set webhook', sessionId, data);
+    // todo implement send webhook
 };
 
 const deleteSession = (sessionId, isLegacy = false) => {
@@ -270,6 +314,7 @@ const init = () => {
         const sessionId = isLegacy ? parts.slice(2).join('_') : parts.slice(1).join('_');
 
         createSession(sessionId, isLegacy);
+        
     });
 };
 
@@ -284,5 +329,6 @@ module.exports = {
     formatPhone,
     formatGroup,
     cleanup,
-    init
+    init,
+    getSessionStatus
 };

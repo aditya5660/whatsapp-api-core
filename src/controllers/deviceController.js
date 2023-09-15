@@ -1,45 +1,49 @@
 const Joi = require('joi');
 const deviceService = require('../services/deviceService');
-const { createSession } = require('../services/whatsappService');
+const { createSession, getSessionStatus, isSessionExists } = require('../services/whatsappService');
+const ResponseUtil = require('../utils/response');
+const is = require('sharp/lib/is');
+const { generateRandomString } = require('../utils/general');
 
 module.exports = {
-    getAllDevices: async (req, res) => {
+    async getAllDevices(req, res) {
         try {
             const user = req.user;
-            const devices = await deviceService.getAllDevices(req?.user.userId);
-            res.json(devices);
+            const devices = await deviceService.getAllDevices(user.userId);
+            return ResponseUtil.ok({ res, data: devices });
         } catch (error) {
-            console.log(error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error(error);
+            return ResponseUtil.internalError({ res });
         }
     },
 
-    getDeviceById: async (req, res) => {
-        // Define a schema to validate the device ID parameter
+    async getDeviceById(req, res) {
         const schema = Joi.object({
             deviceId: Joi.number().integer().required(),
         });
 
-        // Validate the device ID parameter
         const { error } = schema.validate(req.params);
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
 
         const deviceId = req.params.deviceId;
         try {
-            const device = await deviceService.getDeviceById(deviceId);
+            const device = await deviceService.getById(deviceId);
             if (!device) {
-                return res.status(404).json({ error: 'Device not found' });
+                return ResponseUtil.notFound({ res, message: 'Device not found' });
             }
-            res.json(device);
+            const session = await getSessionStatus(device.phone);
+
+            return ResponseUtil.ok({ res, data: {device, session} });
         } catch (error) {
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error(error);
+            return ResponseUtil.internalError({ res });
         }
     },
 
-    createDevice: async (req, res) => {
+    async createDevice(req, res) {
         const schema = Joi.object({
             phone: Joi.string().required(),
             webhook_url: Joi.string(),
@@ -48,49 +52,43 @@ module.exports = {
         const { error } = schema.validate(req.body);
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
 
         const device = await deviceService.getByPhone(req.body.phone, req.user.userId);
         if (device) {
-            return res.status(400).json({ error: 'device already exists' });
+            return ResponseUtil.badRequest({ res, message: 'Device already exists' });
         }
-        // generate random string for device token
-        const token = generateRandomString()
-        const deviceData = {...req.body, user_id: req.user.userId, token };
+
+        // Generate a random string for the device token
+        const token = generateRandomString();
+        const deviceData = { ...req.body, user_id: req.user.userId, token };
         try {
             const newDevice = await deviceService.createDevice(deviceData);
-            res.status(201).json(newDevice);
+            return ResponseUtil.created({ res, data: newDevice });
         } catch (error) {
-            console.log(error);
-            res.status(400).json({ error: 'Invalid device data' });
+            console.error(error);
+            return ResponseUtil.badRequest({ res, message: 'Invalid device data' });
         }
     },
 
-    scanDevice: async (req, res) => {
+    async scanDevice(req, res) {
         const { deviceId } = req.params;
 
         try {
-            // Find the device by deviceId number
             const device = await deviceService.getById(deviceId);
 
             if (!device) {
-                return res.status(404).json({ error: 'Device not found' });
-            }
-
-            // Call WhatsApp Service's createSession method based on the device's phone number
-            await createSession(device.phone,false, res);
-
-            // Handle the sessionData as needed (e.g., return it in the response)
-            
+                return ResponseUtil.notFound({ res, message: 'Device not found' });
+            }          
+            return await createSession(device.phone, false, res);
         } catch (error) {
-            console.log(error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error(error);
+            return ResponseUtil.internalError({ res, error: error });
         }
     },
 
-    updateDevice: async (req, res) => {
-        // Define a schema to validate the device ID parameter and request body
+    async updateDevice(req, res) {
         const paramSchema = Joi.object({
             deviceId: Joi.number().integer().required(),
         });
@@ -98,10 +96,8 @@ module.exports = {
         const bodySchema = Joi.object({
             name: Joi.string(),
             description: Joi.string(),
-            // Add more validation for other fields as needed
         });
 
-        // Validate the device ID parameter and request body
         const paramValidation = paramSchema.validate(req.params);
         const bodyValidation = bodySchema.validate(req.body);
 
@@ -110,7 +106,7 @@ module.exports = {
                 ...(paramValidation.error ? [paramValidation.error.details[0].message] : []),
                 ...(bodyValidation.error ? [bodyValidation.error.details[0].message] : []),
             ];
-            return res.status(400).json({ errors });
+            return ResponseUtil.badRequest({ res, errors });
         }
 
         const deviceId = req.params.deviceId;
@@ -118,48 +114,35 @@ module.exports = {
         try {
             const updatedDevice = await deviceService.updateDevice(deviceId, updatedDeviceData);
             if (!updatedDevice) {
-                return res.status(404).json({ error: 'Device not found' });
+                return ResponseUtil.notFound({ res, message: 'Device not found' });
             }
-            res.json(updatedDevice);
+            return ResponseUtil.ok({ res, data: updatedDevice });
         } catch (error) {
-            res.status(400).json({ error: 'Invalid device data' });
+            return ResponseUtil.badRequest({ res, message: 'Invalid device data' });
         }
     },
 
-    deleteDevice: async (req, res) => {
-        // Define a schema to validate the device ID parameter
+    async deleteDevice(req, res) {
         const schema = Joi.object({
             deviceId: Joi.number().integer().required(),
         });
 
-        // Validate the device ID parameter
         const { error } = schema.validate(req.params);
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
 
         const deviceId = req.params.deviceId;
         try {
             const deletedDevice = await deviceService.deleteDevice(deviceId);
             if (!deletedDevice) {
-                return res.status(404).json({ error: 'Device not found' });
+                return ResponseUtil.notFound({ res, message: 'Device not found' });
             }
-            res.status(204).send(); // No content on success
+            return ResponseUtil.noContent({ res });
         } catch (error) {
-            res.status(500).json({ error: 'Internal Server Error' });
+            return ResponseUtil.internalError({ res });
         }
     },
 };
 
-function generateRandomString(length = 20) {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let randomString = '';
-  
-    for (let i = 0; i < length; i++) {
-      const randomIndex = Math.floor(Math.random() * characters.length);
-      randomString += characters.charAt(randomIndex);
-    }
-  
-    return randomString;
-}

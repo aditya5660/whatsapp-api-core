@@ -24,6 +24,7 @@ function sendResponse(res, code, message, data, error) {
 
     if (error) {
         result.success = false;
+        result.error = process.env.NODE_ENV == 'local' ? error : null;
         console.error({ ...result, error });
     }
 
@@ -121,7 +122,7 @@ module.exports = {
     conflict: function ({ res, message, err }) {
         sendResponse(res, httpStatusCode.CONFLICT, message, null, err);
     },
-    internalError: function ({ res, message, err }) {
+    internalError: function ({ res, message = 'Internal Server Error', err }) {
         sendResponse(res, httpStatusCode.INTERNAL_SERVER_ERROR, message, null, err);
     },
     csvFile: function ({ res, fileName, data }) {

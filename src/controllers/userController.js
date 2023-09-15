@@ -1,18 +1,32 @@
 const Joi = require('joi');
 const userService = require('../services/userService');
+const ResponseUtil = require('../utils/response');
 
 module.exports = {
-    getAllUsers: async (req, res) => {
+    async getAllUsers(req, res) {
         try {
-            const users = await userService.getAllUsers();
-            res.json(users);
+            const schema = Joi.object({
+                page: Joi.number().integer().min(1).default(1),
+                limit: Joi.number().integer().min(1).default(10),
+            });
+
+            const { error, value } = schema.validate(req.query);
+
+            if (error) {
+                return ResponseUtil.badRequest({ res, message: error.details[0].message });
+            }
+
+            const { page, limit } = value;
+            const offset = (page - 1) * limit;
+            const users = await userService.getAllUsers(offset, limit);
+            return ResponseUtil.ok({ res, message: 'Users found', data: users });
         } catch (error) {
-            console.log(error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error(error);
+            return ResponseUtil.internalError({ res, message: 'Internal Server Error', error });
         }
     },
 
-    getUserById: async (req, res) => {
+    async getUserById(req, res) {
         const schema = Joi.object({
             userId: Joi.number().integer().required(),
         });
@@ -20,22 +34,23 @@ module.exports = {
         const { error } = schema.validate({ userId: req.params.userId });
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
 
         const userId = req.params.userId;
         try {
             const user = await userService.getUserById(userId);
             if (!user) {
-                return res.status(404).json({ error: 'User not found' });
+                return ResponseUtil.notFound({ res, message: 'User not found' });
             }
-            res.json(user);
+            return ResponseUtil.ok({ res, data: user });
         } catch (error) {
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error(error);
+            return ResponseUtil.internalError({ res, message: 'Internal Server Error', error });
         }
     },
 
-    createUser: async (req, res) => {
+    async createUser(req, res) {
         const schema = Joi.object({
             name: Joi.string().required(),
             email: Joi.string().email().required(),
@@ -46,25 +61,25 @@ module.exports = {
         const { error } = schema.validate(req.body);
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
-        // check user by email
+
         const user = await userService.getByEmail(req.body.email);
         if (user) {
-            return res.status(400).json({ error: 'User already exists' });
+            return ResponseUtil.badRequest({ res, message: 'User already exists' });
         }
 
         const userData = req.body;
         try {
             const newUser = await userService.createUser(userData);
-            res.status(201).json(newUser);
+            return ResponseUtil.created({ res, message: 'User created', data: newUser });
         } catch (error) {
-            console.log(error);
-            res.status(400).json({ error: 'Invalid user data' });
+            console.error(error);
+            return ResponseUtil.internalError({ res, message: 'Internal Server Error', error });
         }
     },
 
-    updateUser: async (req, res) => {
+    async updateUser(req, res) {
         const schema = Joi.object({
             name: Joi.string(),
             password: Joi.string().min(6),
@@ -73,14 +88,10 @@ module.exports = {
             role_id: Joi.number().integer(),
         });
 
-        const { error } = schema.validate({
-            userId: req.params.userId,
-            email: req.body.email,
-            role_id: req.body.role_id,
-        });
+        const { error } = schema.validate({ ...req.body, ...req.params });
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
 
         const userId = req.params.userId;
@@ -88,15 +99,16 @@ module.exports = {
         try {
             const updatedUser = await userService.updateUser(userId, updatedUserData);
             if (!updatedUser) {
-                return res.status(404).json({ error: 'User not found' });
+                return ResponseUtil.notFound({ res, message: 'User not found' });
             }
-            res.json(updatedUser);
+            return ResponseUtil.ok({ res, message: 'User updated' });
         } catch (error) {
-            res.status(400).json({ error: 'Invalid user data' });
+            console.error(error);
+            return ResponseUtil.internalError({ res, message: 'Internal Server Error', error });
         }
     },
 
-    deleteUser: async (req, res) => {
+    async deleteUser(req, res) {
         const schema = Joi.object({
             userId: Joi.number().integer().required(),
         });
@@ -104,18 +116,19 @@ module.exports = {
         const { error } = schema.validate({ userId: req.params.userId });
 
         if (error) {
-            return res.status(400).json({ error: error.details[0].message });
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
         }
 
         const userId = req.params.userId;
         try {
             const deletedUser = await userService.deleteUser(userId);
             if (!deletedUser) {
-                return res.status(404).json({ error: 'User not found' });
+                return ResponseUtil.notFound({ res, message: 'User not found' });
             }
-            res.status(204).send(); // No content on success
+            return ResponseUtil.ok({ res, message: 'User deleted' });
         } catch (error) {
-            res.status(500).json({ error: 'Internal Server Error' });
+            console.error(error);
+            return ResponseUtil.internalError({ res, message: 'Internal Server Error', error });
         }
     },
 };

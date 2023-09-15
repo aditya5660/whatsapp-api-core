@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS devices;
 -- Create the users table
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     role_id INT,
     password VARCHAR(255) NOT NULL,

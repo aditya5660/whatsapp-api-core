@@ -13,6 +13,7 @@ const {
     useMultiFileAuthState,
     delay
 } = require('@whiskeysockets/baileys');
+const deviceService = require('./deviceService.js');
 
 const sessions = new Map();
 const retries = new Map();
@@ -85,7 +86,13 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
             inMemoryStore.chats.insertIfAbsent(...chats);
         }
     });
-
+    client.ev.on('messages.update', async (message) => {
+        console.log('message updated', message);
+        // remote_message_id, remote_jid
+        // 1 => sent
+        // 3 => delivered
+        // 4 => read
+    })
     client.ev.on('messages.upsert', async (message) => {
 
         try {
@@ -166,11 +173,12 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
 const getSession = (sessionId) => sessions.get(sessionId) || null;
 
 const setDeviceStatus = (sessionId, status) => {
+    deviceService.setStatus(sessionId, status ? 'connected' : 'disconnected');
     console.log('set device status', sessionId, status);
 };
 
 const sentWebHook = (sessionId, data) => {
-    //   console.log('set webhook', sessionId, data);
+    console.log('set webhook', sessionId, data);
 };
 
 const deleteSession = (sessionId, isLegacy = false) => {

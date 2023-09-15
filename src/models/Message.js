@@ -15,8 +15,11 @@ const Message = sequelize.define('Message', {
         allowNull: false,
     },
     metadata: DataTypes.JSON,
-    created_at: DataTypes.DATE,
-    updated_at: DataTypes.DATE,
+}, {
+    tableName: 'messages',
+    timestamps: true,
+    paranoid: false,
+    underscored: true,    
 });
 
 module.exports = Message;

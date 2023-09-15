@@ -10,10 +10,13 @@ const Device = sequelize.define('Device', {
     },
     phone: DataTypes.STRING,
     user_id: DataTypes.INTEGER,
+    status: DataTypes.STRING,
     token: DataTypes.STRING,
     webhook_url: DataTypes.STRING,
-    created_at: DataTypes.DATE,
-    updated_at: DataTypes.DATE,
+}, {
+    timestamps: true,
+    paranoid: false,
+    underscored: true,    
 });
 
 module.exports = Device;

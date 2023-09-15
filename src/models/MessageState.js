@@ -13,7 +13,11 @@ const MessageState = sequelize.define('MessageState', {
         allowNull: false,
     },
     notes: DataTypes.STRING,
-    created_at: DataTypes.DATE,
+}, {
+    tableName: 'message_states',
+    timestamps: true,
+    paranoid: false,
+    underscored: true,    
 });
 
 module.exports = MessageState;

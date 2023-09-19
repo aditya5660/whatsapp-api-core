@@ -281,6 +281,11 @@ const cleanup = () => {
 };
 
 const init = () => {
+    // check if sessionsFolder not exists then create it
+    if (!fs.existsSync(sessionsDir())) {
+        fs.mkdirSync(sessionsDir());
+    }
+
     fs.readdirSync(sessionsDir()).forEach((fileName) => {
         if (!(fileName.startsWith("md_") || fileName.startsWith("legacy_")) || fileName.endsWith("_store")) {
             return;

@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const { fileURLToPath } = require('url');
+
 const pino = require('pino');
 const { toDataURL } = require('qrcode');
 const dirname = require('../utils/dirname.js');
 const ResponseUtil = require('../utils/response.js');
-const axios = require('axios');
+
 const util = require('util');
-const messageService = require('./messageService');
+
 
 const readFileAsync = util.promisify(fs.readFile);
 const {
@@ -17,7 +17,7 @@ const {
     useMultiFileAuthState,
     delay
 } = require('@whiskeysockets/baileys');
-const deviceService = require('./deviceService.js');
+
 
 const sessions = new Map();
 const retries = new Map();
@@ -110,19 +110,7 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
         }
     });
     client.ev.on('messages.update', async (message) => {
-        console.log('message updated', message);
-        // loop the message
-        await Promise.all(
-            message.map(async (messageDetail) => {
-                if (messageDetail.key.id,messageDetail.update.status) {
-                    messageService.updateMessageByRemoteMessageId(messageDetail.key.id,messageDetail.update.status);
-                }
-            })
-        );
-        // remote_message_id, remote_jid
-        // 1 => sent
-        // 3 => delivered
-        // 4 => read
+        // TODO: 
     })
     client.ev.on('messages.upsert', async (message) => {
 
@@ -150,9 +138,7 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
                     webHookData.sessionId = sessionId;
                     webHookData.message_id = firstMessage.key.id;
                     webHookData.message = conversation;
-                    
-                    sentWebHook(sessionId, webHookData);
-                    // TODO: implement auto reply
+                    // TODO: send webhook
                 }
             }
 
@@ -217,16 +203,6 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
 
 const getSession = (sessionId) => sessions.get(sessionId) || null;
 
-
-const setDeviceStatus = (sessionId, status) => {
-    deviceService.setStatus(sessionId, status ? 'connected' : 'disconnected');
-    console.log('set device status', sessionId, status);
-};
-
-const sentWebHook = (sessionId, data) => {
-    // todo implement send webhook
-};
-
 const deleteSession = (sessionId, isLegacy = false) => {
     const sessionFileName = (isLegacy ? 'legacy_' : 'md_') + sessionId + (isLegacy ? '.json' : '');
     const storeFileName = sessionId + "_store.json";
@@ -237,8 +213,7 @@ const deleteSession = (sessionId, isLegacy = false) => {
 
     sessions.delete(sessionId);
     retries.delete(sessionId);
-
-    setDeviceStatus(sessionId, 0);
+    return true;
 };
 
 const getChatList = (sessionId, isGroup = false) => {

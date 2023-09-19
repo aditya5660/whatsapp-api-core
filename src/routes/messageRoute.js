@@ -1,9 +1,7 @@
 const router = require('express').Router();
 const messageController = require('../controllers/messageController');
-const authOrApiKeyMiddleware = require('../middlewares/authOrApiKeyMiddleware');
+const apikeyValidator = require('../middlewares/apikeyValidator');
 
-router.post('/send', authOrApiKeyMiddleware, messageController.sendMessage);
-// router.post('/messages', authController.forceLogin);
-// router.get('/messages/:id', authMiddleware, authController.me);
+router.post('/send', apikeyValidator, messageController.sendMessage);
 
 module.exports = router;

@@ -1,20 +1,9 @@
-const express = require('express');
-const { body } = require('express-validator');
-const requestValidator = require('./../middlewares/requestValidator.js');
-const sessionValidator = require('./../middlewares/sessionValidator.js');
-const controller = require('./../controllers/sessionsController.js');
+const router = require('express').Router();
 const apikeyValidator = require('./../middlewares/apikeyValidator.js');
+const sessionController = require('../controllers/sessionController.js');
 
-const router = express.Router();
-
-router.get('/find/:id', sessionValidator, apikeyValidator, controller.find);
-
-router.get('/server-status', apikeyValidator, controller.find);
-
-router.get('/status/:id', sessionValidator, apikeyValidator, controller.status);
-
-router.post('/add', body('id').notEmpty(), body('isLegacy').notEmpty(), requestValidator, apikeyValidator, controller.add);
-
-router.delete('/delete/:id', sessionValidator, apikeyValidator, controller.del);
+router.get('/:sessionId', apikeyValidator, sessionController.status);
+router.post('/:sessionId', apikeyValidator, sessionController.create);
+router.post('/:sessionId/logout', apikeyValidator, sessionController.logout);
 
 module.exports = router;

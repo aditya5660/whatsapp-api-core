@@ -1,36 +1,38 @@
-const Message = require('../models/Message');
-const MessageState = require('../models/MessageState');
-const deviceService = require('../services/deviceService');
+const Joi = require('joi');
 const whatsappService = require('../services/whatsappService');
-const { getSessionStatus, getSession } = require('../services/whatsappService');
 const { categorizeFile } = require('../utils/general');
 const ResponseUtil = require('../utils/response');
 
 
 module.exports = {
     sendMessage: async (req, res) => {
+        
+        const schema = Joi.object({
+            sender: Joi.string().required(),
+            receiver: Joi.string().required(),
+            message: Joi.string().required(),
+            file: Joi.string()
+        });
+
+        const { error } = schema.validate(req.body);
+
+        if (error) {
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
+        }
         // Extract request headers and body
         const { headers, body } = req;
-        const { receiver, message, file } = body;
-        const user = req.user;
+        const { receiver, message, file, sender } = body;
         try {
-            // Verify the device token (API key)
-            const device = await deviceService.getByPhone(body.sender, user.userId);
-            
-            if (!device) {
-                return ResponseUtil.unauthorized({ res ,message: 'Device Not Found' });
-            }
     
-            const sessionStatus = await whatsappService.getSessionStatus(device.phone);
+            const sessionStatus = await whatsappService.getSessionStatus(sender);
             
             if(sessionStatus.status == 'disconnected'){
-                return ResponseUtil.badRequest({ res, message: 'Device not connected' });
+                return ResponseUtil.badRequest({ res, message: 'Session not connected' });
             }
     
-            const session = await whatsappService.getSession(device.phone);
+            const session = await whatsappService.getSession(sender);
 
-            // Split the receivers string into an array if multiple receivers are provided
-            const receivers = receiver.split(',');
+            const receivers = receiver.split('|');
             
             let formattedMessage = {
                 text: message,
@@ -45,32 +47,18 @@ module.exports = {
                 } 
             }
 
-            // Send messages to each receiver
-            const results = await Promise.all(
-                receivers.map(async (recipient) => {
-                    const formattedPhoneNumber = whatsappService.formatPhone(recipient);
-                    
-                    const result = await whatsappService.sendMessage(session, formattedPhoneNumber, formattedMessage);
-                    // Create a message record in the messages table
-                    const messageRecord = await Message.create({
-                        device_id: device.id,
-                        user_id: device.user_id,
-                        receiver: recipient,
-                        metadata: result,
-                        state: result.status,
-                        message: message,
-                        file: file,
-                        remote_message_id: result.key.id,
-                        remote_jid: result.key.remoteJid 
-                    });
-        
-                    const messageState = await MessageState.create({
-                        message_id: messageRecord.id, 
-                        state: result.status
-                    });
-                    return { recipient, ...result };
-                })
-            );
+            const results = [];
+            console.log(receivers);
+            for (const recipient of receivers) {
+                const formattedPhoneNumber = whatsappService.formatPhone(recipient);
+                try {
+                    const result = await whatsappService.sendMessage(session, formattedPhoneNumber, formattedMessage, 1000);
+                    results.push({ recipient, ...result });
+                } catch (error) {
+                    // Handle the error if needed
+                    console.error(`Failed to send message to recipient ${recipient}: ${error}`);
+                }
+            }
     
     
             return ResponseUtil.ok({ res, data: results, message: 'Message sent' });

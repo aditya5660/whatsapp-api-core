@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const deviceService = require('../services/deviceService');
-const { createSession, getSessionStatus, isSessionExists } = require('../services/whatsappService');
+const { createSession, getSessionStatus, isSessionExists, reconnectSession, deleteSession } = require('../services/whatsappService');
 const ResponseUtil = require('../utils/response');
 const is = require('sharp/lib/is');
 const { generateRandomString } = require('../utils/general');
@@ -73,15 +73,52 @@ module.exports = {
     },
 
     async scanDevice(req, res) {
-        const { deviceId } = req.params;
+        const schema = Joi.object({
+            devicePhone: Joi.required(),
+        });
+        const { error } = schema.validate(req.params);
+
+        if (error) {
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
+        }
+        const { devicePhone } = req.params;
+        const user = req.user;
 
         try {
-            const device = await deviceService.getById(deviceId);
+            const device = await deviceService.getByPhone(devicePhone, user.userId);
 
             if (!device) {
                 return ResponseUtil.notFound({ res, message: 'Device not found' });
             }          
-            return await createSession(device.phone, false, res);
+            await createSession(device.phone, false, res);
+        
+        } catch (error) {
+            console.error(error);
+            return ResponseUtil.internalError({ res, error: error });
+        }
+    },
+
+    async logoutDevice (req, res) {
+        const schema = Joi.object({
+            devicePhone: Joi.required(),
+        });
+        const { error } = schema.validate(req.params);
+        if (error) {
+            return ResponseUtil.badRequest({ res, message: error.details[0].message });
+        }
+        const { devicePhone } = req.params;
+        const user = req.user;
+        try {
+            const device = await deviceService.getByPhone(devicePhone, user.userId);
+
+            if (!device) {
+                return ResponseUtil.notFound({ res, message: 'Device not found' });
+            }          
+            const result = await deleteSession(device.phone, false);
+            if (!result.status) {
+                return ResponseUtil.badRequest({ res, message: result.message });
+            }
+            return ResponseUtil.ok({ res, data: result.data, message: result.message });
         } catch (error) {
             console.error(error);
             return ResponseUtil.internalError({ res, error: error });

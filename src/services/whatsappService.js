@@ -173,10 +173,12 @@ const createSession = async (sessionId, isLegacy = false, res = null) => {
         if (connection === "close") {
             if (statusCode === DisconnectReason.loggedOut || !shouldReconnect(sessionId)) {
                 deleteSession(sessionId, isLegacy);
-                return ResponseUtil.badRequest({
-                    res,
-                    message: "Unable to create session.",
-                });
+                if (res && !res.headersSent) {
+                    return ResponseUtil.badRequest({
+                        res,
+                        message: "Unable to create session.",
+                    });
+                }
             }
 
             setTimeout(() => {

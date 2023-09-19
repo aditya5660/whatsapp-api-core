@@ -58,6 +58,8 @@ module.exports = {
                         receiver: recipient,
                         metadata: result,
                         state: result.status,
+                        message: message,
+                        file: file,
                         remote_message_id: result.key.id,
                         remote_jid: result.key.remoteJid 
                     });

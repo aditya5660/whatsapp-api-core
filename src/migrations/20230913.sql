@@ -33,6 +33,8 @@ CREATE TABLE messages (
     device_id INT,
     state VARCHAR(255) NOT NULL,
     metadata JSON,
+    message VARCHAR(255),
+    file VARCHAR(255),
     remote_message_id VARCHAR(255),
     remote_jid VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

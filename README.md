@@ -1,4 +1,4 @@
-# WhatsApp API
+# WhatsApp API Core
 
 This is a simple implementation of the [@WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) library for interacting with WhatsApp through a RESTful API. This README provides instructions on how to set up and use the API.
 
@@ -17,6 +17,13 @@ To get started, follow these steps:
    ```bash
    npm run start
    ```
+## SessionId
+
+I'm highly recommended to create your sessionId using a unique identifier like `uuid`, but you can also use your phone number as sessionId
+
+## Receiver Phone Number
+
+the receiver phone number only support with full country code eg: 6285123123123
 
 ## How to Create a Session
 

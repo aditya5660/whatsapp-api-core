@@ -1,6 +1,6 @@
 # WhatsApp API
 
-This is a simple implementation of the [@WhiskeySockets/Baileys](https://github.com/whiskeys/baileys) library for interacting with WhatsApp through a RESTful API. This README provides instructions on how to set up and use the API.
+This is a simple implementation of the [@WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) library for interacting with WhatsApp through a RESTful API. This README provides instructions on how to set up and use the API.
 
 ## How to Run
 

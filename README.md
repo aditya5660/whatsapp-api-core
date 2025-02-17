@@ -1,114 +1,115 @@
 # WhatsApp API Core
 
-This is a simple implementation of the [@WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) library for interacting with WhatsApp through a RESTful API. This README provides instructions on how to set up and use the API.
+Implementasi sederhana dari library [@WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) untuk berinteraksi dengan WhatsApp melalui RESTful API.
 
-## How to Run
+## 🚀 Fitur Utama
 
-To get started, follow these steps:
+- Multi-session WhatsApp
+- Pengiriman pesan teks
+- Pengiriman pesan media (gambar, video, dokumen)
+- Pengiriman pesan massal (bulk messaging)
+- Manajemen sesi (create, check status, logout)
+- Penanganan memory leak yang optimal
+- Graceful shutdown
+- Error handling yang robust
+- Sistem reconnection yang handal
+- Logging yang terstruktur
+- Utilitas WhatsApp:
+  - Cek status nomor
+  - Daftar grup & peserta
 
-1. Install the required dependencies:
+## 📋 Prasyarat
 
-   ```bash
-   npm install
-   ```
+- Node.js (versi 18 atau lebih baru)
+- NPM atau Yarn
+- API Key (untuk autentikasi)
 
-2. Start the API server:
+## 🛠️ Instalasi & Penggunaan
 
-   ```bash
-   npm run start
-   ```
-## SessionId
-
-I'm highly recommended to create your sessionId using a unique identifier like `uuid`, but you can also use your phone number as sessionId
-
-## Receiver Phone Number
-
-the receiver phone number only support with full country code eg: 6285123123123
-
-## How to Create a Session
-
-To use the WhatsApp API, you'll need to create a session. Use the following `curl` command to create a session:
-
+1. Install dependensi:
 ```bash
-curl --location --request POST 'localhost:3000/sessions/:sessionId' \
---header 'x-api-key: YOUR_API_KEY'
+npm install
 ```
 
-Replace `:sessionId` with a unique session identifier and `YOUR_API_KEY` with your actual API key.
-
-## How to Check Session Status
-
-You can check the status of a session using the following `curl` command:
-
-```bash
-curl --location 'localhost:3000/sessions/:sessionId' \
---header 'x-api-key: YOUR_API_KEY'
+2. Salin file .env.example ke .env dan sesuaikan:
+```env
+NODE_ENV=local
+APP_URL=127.0.0.1
+APP_PORT=3000
+ENABLE_API_KEY=true
+API_KEY=your_api_key
+BASE_URL=http://localhost:3000 # ganti dengan URL produksi
 ```
 
-Replace `:sessionId` with the session you want to check and `YOUR_API_KEY` with your actual API key.
-
-## How to Logout a Session
-
-To log out of a session, use the following `curl` command:
-
+3. Jalankan server:
 ```bash
-curl --location --request POST 'localhost:3000/sessions/:sessionId/logout' \
---header 'x-api-key: YOUR_API_KEY'
+npm run start
 ```
 
-Replace `:sessionId` with the session you want to log out of and `YOUR_API_KEY` with your actual API key.
+## 📱 Endpoint API
 
-## How to Send a Text Message
+### Sessions
+- `POST /sessions/:sessionId` - Membuat/menggunakan sesi
+- `GET /sessions/:sessionId` - Cek status sesi
+- `POST /sessions/:sessionId/logout` - Logout sesi
 
-You can send a text message using the API with the following `curl` command:
+### Messages
+- `POST /messages/send` - Kirim pesan (teks/media)
+  ```json
+  {
+    "sender": "session_id_1",
+    "receiver": "6285123456789",
+    "message": "Hello World!",
+    "file": "https://example.com/image.jpg", // Optional
+    "viewOnce": false // Optional, default: false
+  }
+  ```
 
-```bash
-curl --location 'localhost:3000/send' \
---header 'Content-Type: application/json' \
---header 'x-api-key: YOUR_API_KEY' \
---data '{
-    "sender": "YOUR_SESSION_ID",
-    "receiver": "YOUR_TARGET_RECEIVER",
-    "message": "YOUR_MESSAGE"
-}'
+### Utility
+- `GET /utility/groups/:sessionId` - Daftar grup & peserta
+- `POST /utility/check-number` - Cek status nomor WhatsApp
+
+## 🔄 Update Terbaru
+
+### 1. Peningkatan Stabilitas
+- Perbaikan error handling untuk error 515
+- Sistem reconnection yang lebih handal
+- Timeout dan cleanup yang optimal
+- Logging yang lebih informatif dengan format [sessionId]
+
+### 2. Fitur Utility
+- Endpoint groups dengan informasi lengkap (peserta, admin, pengaturan)
+- Verifikasi nomor WhatsApp yang lebih akurat
+- Format nomor otomatis (08/+62 -> 62)
+
+### 3. Optimasi
+- Penyederhanaan path resolver
+- Cleanup sesi yang lebih menyeluruh
+- Penanganan memory leak yang lebih baik
+
+### 4. Dokumentasi
+- Swagger UI di `/docs`
+- Contoh request & response yang lebih lengkap
+- Penjelasan error handling yang lebih detail
+
+## 📚 API Documentation
+
+Dokumentasi API tersedia melalui Swagger UI di:
+```
+http://localhost:3000/docs
 ```
 
-Replace `YOUR_SESSION_ID` with the session you want to send the message from, `YOUR_TARGET_RECEIVER` with the recipient's identifier, and `YOUR_MESSAGE` with the actual message content.
+Anda dapat:
+- Melihat semua endpoint yang tersedia
+- Mencoba endpoint secara langsung
+- Melihat schema request dan response
+- Menggunakan authorization dengan API key
 
-## How to Send Bulk Text Messages
+## 🤝 Kontribusi
 
-To send bulk text messages, you can use the following `curl` command:
+Kontribusi selalu diterima! Silakan buat pull request atau laporkan issues jika menemukan bug.
 
-```bash
-curl --location 'localhost:3000/send' \
---header 'Content-Type: application/json' \
---header 'x-api-key: YOUR_API_KEY' \
---data '{
-    "sender": "YOUR_SESSION_ID",
-    "receiver": "YOUR_TARGET_RECEIVER_1|YOUR_TARGET_RECEIVER_2",
-    "message": "YOUR_MESSAGE"
-}'
-```
+## 📜 Lisensi
 
-Replace `YOUR_SESSION_ID` with the session you want to send the messages from, `YOUR_TARGET_RECEIVER_1|YOUR_TARGET_RECEIVER_2` with a pipe-separated list of target receivers, and `YOUR_MESSAGE` with the actual message content.
-
-## How to Send Media Messages
-
-To send media messages, use the following `curl` command:
-
-```bash
-curl --location 'localhost:3000/send' \
---header 'Content-Type: application/json' \
---header 'x-api-key: YOUR_API_KEY' \
---data '{
-    "sender": "YOUR_SESSION_ID",
-    "receiver": "YOUR_TARGET_RECEIVER_1",
-    "message": "YOUR_MESSAGE",
-    "file" : "YOUR_MEDIA_PUBLIC_URL"
-}'
-```
-
-Replace `YOUR_SESSION_ID` with the session you want to send the media from, `YOUR_TARGET_RECEIVER_1` with the recipient's identifier, `YOUR_MESSAGE` with the actual message content, and `YOUR_MEDIA_PUBLIC_URL` with the public URL of the media file you want to send.
-
-Feel free to explore and integrate this WhatsApp API into your applications for automated messaging and interaction with WhatsApp. Make sure to keep your API key secure and follow WhatsApp's terms of service and guidelines when using this API.
+Proyek ini dilisensikan di bawah [MIT License](LICENSE).
 

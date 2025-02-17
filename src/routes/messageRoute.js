@@ -1,7 +1,9 @@
-const router = require('express').Router();
-const messageController = require('../controllers/messageController');
-const apikeyValidator = require('../middlewares/apikeyValidator');
+const router = require("express").Router();
+const messageController = require("../controllers/messageController");
+const apikeyValidator = require("../middlewares/apikeyValidator");
+const jsonResponse = require("../middlewares/jsonResponse");
 
-router.post('/send', apikeyValidator, messageController.sendMessage);
+// Endpoint untuk mengirim pesan (teks & media)
+router.post("/send", [apikeyValidator], messageController.sendMessage);
 
 module.exports = router;
